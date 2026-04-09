@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} — CodeBench{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <h4>{{ problem.title }}</h4>
+    <div class="mb-2">
+      <span class="badge bg-secondary me-1">
+        Difficulty: <span class="difficulty-{{ problem.difficulty.value }}">{{ problem.difficulty.value|capitalize }}</span>
+      </span>
+      <span class="badge bg-light text-dark border me-1">Time: {{ problem.time_limit_ms }}ms</span>
+      <span class="badge bg-light text-dark border">Memory: {{ problem.memory_limit_mb }}MB</span>
+    </div>
+    <hr>
+    <div class="mb-4" style="white-space: pre-wrap; line-height: 1.7;">{{ problem.description }}</div>
+
+    {% if sample_cases %}
+    <h6>Sample Test Cases</h6>
+    {% for tc in sample_cases %}
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header py-1 small fw-semibold">Input {{ loop.index }}</div>
+          <div class="card-body p-2"><pre class="mb-0" style="font-size:.85rem;">{{ tc.input if tc.input else '(empty)' }}</pre></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header py-1 small fw-semibold">Expected Output {{ loop.index }}</div>
+          <div class="card-body p-2"><pre class="mb-0" style="font-size:.85rem;">{{ tc.expected_output }}</pre></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">Submit Solution</div>
+      <div class="card-body">
+        {% if not user %}
+        <p class="text-muted small">You must <a href="/login">login</a> to submit.</p>
+        {% else %}
+        {% if error %}
+        <div class="alert alert-danger py-2 small">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/problems/{{ problem.id }}/submit" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label small">Language</label>
+            <select name="language" class="form-select form-select-sm" id="langSelect" onchange="updateHint()">
+              <option value="python">Python (.py)</option>
+              <option value="cpp">C++ (.cpp)</option>
+              <option value="java">Java (.java)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Source File</label>
+            <input type="file" name="file" class="form-control form-control-sm" accept=".py,.cpp,.java" required>
+            <div class="form-text small" id="langHint">Upload a <code>.py</code> file.</div>
+          </div>
+          <div class="alert alert-info py-1 px-2 small mb-3">
+            Java submissions: class must be named <code>Solution</code>.
+          </div>
+          <button type="submit" class="btn btn-dark btn-sm w-100">Submit</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if user_submissions %}
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Your Recent Submissions</div>
+      <ul class="list-group list-group-flush">
+        {% for s in user_submissions %}
+        <li class="list-group-item py-2">
+          <a href="/submissions/{{ s.id }}" class="text-decoration-none">
+            <span class="verdict-{{ s.verdict }}">{{ s.verdict.replace('_', ' ')|title }}</span>
+          </a>
+          <small class="text-muted ms-2">{{ s.language }} · {{ s.created_at.strftime('%m/%d %H:%M') }}</small>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function updateHint() {
+  const lang = document.getElementById('langSelect').value;
+  const hint = document.getElementById('langHint');
+  const exts = { python: '.py', cpp: '.cpp', java: '.java' };
+  hint.innerHTML = `Upload a <code>${exts[lang]}</code> file.`;
+}
+</script>
+{% endblock %}

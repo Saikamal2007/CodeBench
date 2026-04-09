@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Admin — Problems — CodeBench{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Problems</h5>
+  <a href="/admin/problems/new" class="btn btn-dark btn-sm">+ New Problem</a>
+</div>
+
+{% if not problems %}
+<div class="alert alert-secondary">No problems yet. <a href="/admin/problems/new">Create one.</a></div>
+{% else %}
+<div class="card shadow-sm">
+  <table class="table table-hover mb-0">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Title</th>
+        <th>Difficulty</th>
+        <th>Time</th>
+        <th>Memory</th>
+        <th>Visible</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in problems %}
+      <tr>
+        <td class="text-muted">{{ p.id }}</td>
+        <td><a href="/problems/{{ p.id }}" class="text-decoration-none">{{ p.title }}</a></td>
+        <td class="difficulty-{{ p.difficulty.value }}">{{ p.difficulty.value|capitalize }}</td>
+        <td>{{ p.time_limit_ms }}ms</td>
+        <td>{{ p.memory_limit_mb }}MB</td>
+        <td>
+          {% if p.is_visible %}
+          <span class="badge bg-success">Yes</span>
+          {% else %}
+          <span class="badge bg-secondary">No</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="/admin/problems/{{ p.id }}/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
+          <a href="/admin/problems/{{ p.id }}/testcases" class="btn btn-outline-primary btn-sm">Test Cases</a>
+          <form method="post" action="/admin/problems/{{ p.id }}/delete" class="d-inline"
+                onsubmit="return confirm('Delete problem and all its test cases?')">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

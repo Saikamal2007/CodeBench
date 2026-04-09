@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My Submissions — CodeBench{% endblock %}
+{% block content %}
+<h4 class="mb-3">My Submissions</h4>
+
+{% if not submissions %}
+<div class="alert alert-secondary">No submissions yet. <a href="/">Go solve a problem!</a></div>
+{% else %}
+<div class="card shadow-sm">
+  <table class="table table-hover mb-0">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Problem</th>
+        <th>Language</th>
+        <th>Verdict</th>
+        <th>Runtime</th>
+        <th>Submitted</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td class="text-muted">{{ s.id }}</td>
+        <td><a href="/problems/{{ s.problem_id }}" class="text-decoration-none">{{ s.problem.title }}</a></td>
+        <td>{{ s.language|upper }}</td>
+        <td>
+          <a href="/submissions/{{ s.id }}" class="text-decoration-none verdict-{{ s.verdict }}">
+            {{ verdict_display.get(s.verdict, s.verdict) }}
+          </a>
+        </td>
+        <td>{{ s.runtime_ms ~ 'ms' if s.runtime_ms is not none else '—' }}</td>
+        <td class="text-muted small">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

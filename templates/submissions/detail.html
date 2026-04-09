@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Submission #{{ submission.id }} — CodeBench{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Submission #{{ submission.id }}</h5>
+  <a href="/submissions" class="btn btn-outline-secondary btn-sm">Back</a>
+</div>
+
+<div class="row mb-3">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Problem</dt>
+          <dd class="col-sm-8"><a href="/problems/{{ submission.problem_id }}">{{ submission.problem.title }}</a></dd>
+
+          <dt class="col-sm-4">Verdict</dt>
+          <dd class="col-sm-8">
+            <span class="verdict-{{ submission.verdict }} fs-5">
+              {{ verdict_display.get(submission.verdict, submission.verdict) }}
+            </span>
+          </dd>
+
+          <dt class="col-sm-4">Language</dt>
+          <dd class="col-sm-8">{{ submission.language|upper }}</dd>
+
+          <dt class="col-sm-4">Runtime</dt>
+          <dd class="col-sm-8">{{ submission.runtime_ms ~ ' ms' if submission.runtime_ms is not none else '—' }}</dd>
+
+          <dt class="col-sm-4">Submitted</dt>
+          <dd class="col-sm-8">{{ submission.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+
+          <dt class="col-sm-4">User</dt>
+          <dd class="col-sm-8"><a href="/profile/{{ submission.user.username }}">{{ submission.user.username }}</a></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body text-center">
+        <p class="mb-1 text-muted small">Time Limit</p>
+        <p class="fw-bold mb-2">{{ submission.problem.time_limit_ms }} ms</p>
+        <p class="mb-1 text-muted small">Memory Limit</p>
+        <p class="fw-bold mb-0">{{ submission.problem.memory_limit_mb }} MB</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h6>Source Code</h6>
+<pre class="code-view">{{ submission.code }}</pre>
+{% endblock %}
