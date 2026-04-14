@@ -115,18 +115,37 @@ async def submit_solution(
     db.add(submission)
     db.commit()
     db.refresh(submission)
+    submission_id = submission.id
 
+    # Run judging in background so the user is redirected immediately
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
     from judge.runner import judge_submission
-    verdict, runtime_ms = judge_submission(
-        language=language,
-        code=code,
-        test_cases=problem.test_cases,
-        time_limit_ms=problem.time_limit_ms,
-        memory_limit_mb=problem.memory_limit_mb,
-    )
+    from database import SessionLocal
 
-    submission.verdict = verdict
-    submission.runtime_ms = runtime_ms
-    db.commit()
+    test_cases = list(problem.test_cases)
+    time_limit_ms = problem.time_limit_ms
+    memory_limit_mb = problem.memory_limit_mb
 
-    return RedirectResponse(f"/submissions/{submission.id}", status_code=302)
+    def run_judge():
+        verdict, runtime_ms = judge_submission(
+            language=language,
+            code=code,
+            test_cases=test_cases,
+            time_limit_ms=time_limit_ms,
+            memory_limit_mb=memory_limit_mb,
+        )
+        judge_db = SessionLocal()
+        try:
+            sub = judge_db.query(Submission).filter(Submission.id == submission_id).first()
+            if sub:
+                sub.verdict = verdict
+                sub.runtime_ms = runtime_ms
+                judge_db.commit()
+        finally:
+            judge_db.close()
+
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(ThreadPoolExecutor(max_workers=1), run_judge)
+
+    return RedirectResponse(f"/submissions/{submission_id}", status_code=302)
