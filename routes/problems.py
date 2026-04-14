@@ -81,6 +81,8 @@ def problem_detail(problem_id: int, request: Request, db: Session = Depends(get_
 
 def _run_judge_background(submission_id: int, language: str, code: str,
                            test_cases: list, time_limit_ms: int, memory_limit_mb: int):
+    import logging
+    logger = logging.getLogger("judge")
     db = SessionLocal()
     try:
         verdict, runtime_ms = judge_submission(
@@ -90,11 +92,22 @@ def _run_judge_background(submission_id: int, language: str, code: str,
             time_limit_ms=time_limit_ms,
             memory_limit_mb=memory_limit_mb,
         )
+        logger.info(f"Submission {submission_id}: {verdict} in {runtime_ms}ms")
         sub = db.query(Submission).filter(Submission.id == submission_id).first()
         if sub:
             sub.verdict = verdict
             sub.runtime_ms = runtime_ms
             db.commit()
+    except Exception as e:
+        logger.error(f"Submission {submission_id} judge error: {e}", exc_info=True)
+        try:
+            sub = db.query(Submission).filter(Submission.id == submission_id).first()
+            if sub:
+                sub.verdict = "runtime_error"
+                sub.runtime_ms = 0
+                db.commit()
+        except Exception:
+            pass
     finally:
         db.close()
 
