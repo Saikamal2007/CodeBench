@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from database import get_db
+from database import get_db, SessionLocal
 from models import User, Problem, Submission
 from auth import decode_token
+from judge.runner import judge_submission
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -71,10 +72,31 @@ def problem_detail(problem_id: int, request: Request, db: Session = Depends(get_
     })
 
 
+def _run_judge_background(submission_id: int, language: str, code: str,
+                           test_cases: list, time_limit_ms: int, memory_limit_mb: int):
+    db = SessionLocal()
+    try:
+        verdict, runtime_ms = judge_submission(
+            language=language,
+            code=code,
+            test_cases=test_cases,
+            time_limit_ms=time_limit_ms,
+            memory_limit_mb=memory_limit_mb,
+        )
+        sub = db.query(Submission).filter(Submission.id == submission_id).first()
+        if sub:
+            sub.verdict = verdict
+            sub.runtime_ms = runtime_ms
+            db.commit()
+    finally:
+        db.close()
+
+
 @router.post("/problems/{problem_id}/submit")
 async def submit_solution(
     problem_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     language: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -117,35 +139,14 @@ async def submit_solution(
     db.refresh(submission)
     submission_id = submission.id
 
-    # Run judging in background so the user is redirected immediately
-    import asyncio
-    from concurrent.futures import ThreadPoolExecutor
-    from judge.runner import judge_submission
-    from database import SessionLocal
-
-    test_cases = list(problem.test_cases)
-    time_limit_ms = problem.time_limit_ms
-    memory_limit_mb = problem.memory_limit_mb
-
-    def run_judge():
-        verdict, runtime_ms = judge_submission(
-            language=language,
-            code=code,
-            test_cases=test_cases,
-            time_limit_ms=time_limit_ms,
-            memory_limit_mb=memory_limit_mb,
-        )
-        judge_db = SessionLocal()
-        try:
-            sub = judge_db.query(Submission).filter(Submission.id == submission_id).first()
-            if sub:
-                sub.verdict = verdict
-                sub.runtime_ms = runtime_ms
-                judge_db.commit()
-        finally:
-            judge_db.close()
-
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(ThreadPoolExecutor(max_workers=1), run_judge)
+    background_tasks.add_task(
+        _run_judge_background,
+        submission_id,
+        language,
+        code,
+        list(problem.test_cases),
+        problem.time_limit_ms,
+        problem.memory_limit_mb,
+    )
 
     return RedirectResponse(f"/submissions/{submission_id}", status_code=302)
