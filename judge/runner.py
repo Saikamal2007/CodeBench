@@ -20,8 +20,13 @@ LANGUAGE_CONFIG = {
         "compile_cmd": "g++ -O2 -o /code/solution /code/solution.cpp",
         "run_cmd_docker": "/code/solution < /code/input.txt",
         "run_local": lambda d: [os.path.join(d, "solution")],
-        "compile_local": lambda d: ["g++", "-O2", "-o", os.path.join(d, "solution"),
-                                    os.path.join(d, "solution.cpp")],
+        "compile_local": lambda d: [
+            "g++",
+            "-O2",
+            "-o",
+            os.path.join(d, "solution"),
+            os.path.join(d, "solution.cpp"),
+        ],
     },
     "java": {
         "image": "openjdk:17-slim",
@@ -40,6 +45,7 @@ def normalize(text: str) -> str:
 
 def _docker_run_blocking(client, image, cmd, code_dir, time_limit_s, memory_limit_mb):
     import docker as docker_sdk
+
     start = time.time()
     try:
         output = client.containers.run(
@@ -132,7 +138,9 @@ def _judge_with_subprocess(config, code, test_cases, time_limit_ms, memory_limit
     return "accepted", max_runtime_ms
 
 
-def _judge_with_docker(client, config, code, test_cases, time_limit_ms, memory_limit_mb):
+def _judge_with_docker(
+    client, config, code, test_cases, time_limit_ms, memory_limit_mb
+):
     """Judge using Docker containers."""
     time_limit_s = time_limit_ms / 1000.0
 
@@ -145,8 +153,12 @@ def _judge_with_docker(client, config, code, test_cases, time_limit_ms, memory_l
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
                 future = ex.submit(
                     _docker_run_blocking,
-                    client, config["image"], config["compile_cmd"],
-                    tmpdir, 30, memory_limit_mb,
+                    client,
+                    config["image"],
+                    config["compile_cmd"],
+                    tmpdir,
+                    30,
+                    memory_limit_mb,
                 )
                 try:
                     exit_code, _, stderr, _ = future.result(timeout=35)
@@ -165,8 +177,12 @@ def _judge_with_docker(client, config, code, test_cases, time_limit_ms, memory_l
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
                 future = ex.submit(
                     _docker_run_blocking,
-                    client, config["image"], config["run_cmd_docker"],
-                    tmpdir, time_limit_s, memory_limit_mb,
+                    client,
+                    config["image"],
+                    config["run_cmd_docker"],
+                    tmpdir,
+                    time_limit_s,
+                    memory_limit_mb,
                 )
                 try:
                     exit_code, stdout, stderr, runtime_ms = future.result(
@@ -192,8 +208,9 @@ def _judge_with_docker(client, config, code, test_cases, time_limit_ms, memory_l
     return "accepted", max_runtime_ms
 
 
-def judge_submission(language: str, code: str, test_cases: list,
-                     time_limit_ms: int, memory_limit_mb: int) -> tuple:
+def judge_submission(
+    language: str, code: str, test_cases: list, time_limit_ms: int, memory_limit_mb: int
+) -> tuple:
     """
     Judge a submission against all test cases.
     Uses Docker if available, falls back to local subprocess execution.
@@ -206,13 +223,16 @@ def judge_submission(language: str, code: str, test_cases: list,
     # Try Docker first
     try:
         import docker as docker_sdk
+
         client = docker_sdk.from_env(timeout=5)
         client.ping()
-        return _judge_with_docker(client, config, code, test_cases,
-                                  time_limit_ms, memory_limit_mb)
+        return _judge_with_docker(
+            client, config, code, test_cases, time_limit_ms, memory_limit_mb
+        )
     except Exception:
         pass
 
     # Fall back to local subprocess execution
-    return _judge_with_subprocess(config, code, test_cases,
-                                  time_limit_ms, memory_limit_mb)
+    return _judge_with_subprocess(
+        config, code, test_cases, time_limit_ms, memory_limit_mb
+    )
