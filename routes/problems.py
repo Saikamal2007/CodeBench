@@ -2,11 +2,18 @@ from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPExc
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from dataclasses import dataclass
 
 from database import get_db, SessionLocal
 from models import User, Problem, Submission
 from auth import decode_token
 from judge.runner import judge_submission
+
+
+@dataclass
+class _TestCase:
+    input: str
+    expected_output: str
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -139,12 +146,17 @@ async def submit_solution(
     db.refresh(submission)
     submission_id = submission.id
 
+    test_cases = [
+        _TestCase(input=tc.input or "", expected_output=tc.expected_output or "")
+        for tc in problem.test_cases
+    ]
+
     background_tasks.add_task(
         _run_judge_background,
         submission_id,
         language,
         code,
-        list(problem.test_cases),
+        test_cases,
         problem.time_limit_ms,
         problem.memory_limit_mb,
     )
