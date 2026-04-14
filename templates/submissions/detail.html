@@ -1,8 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Submission #{{ submission.id }} — CodeBench{% endblock %}
-{% if submission.verdict == "pending" %}
-{% block head %}<meta http-equiv="refresh" content="3">{% endblock %}
-{% endif %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5 class="mb-0">Submission #{{ submission.id }}</h5>
@@ -19,16 +16,19 @@
 
           <dt class="col-sm-4">Verdict</dt>
           <dd class="col-sm-8">
-            <span class="verdict-{{ submission.verdict }} fs-5">
+            <span id="verdict-text" class="verdict-{{ submission.verdict }} fs-5">
               {{ verdict_display.get(submission.verdict, submission.verdict) }}
             </span>
+            {% if submission.verdict == "pending" %}
+            <span id="verdict-spinner" class="spinner-border spinner-border-sm text-secondary ms-2" role="status"></span>
+            {% endif %}
           </dd>
 
           <dt class="col-sm-4">Language</dt>
           <dd class="col-sm-8">{{ submission.language|upper }}</dd>
 
           <dt class="col-sm-4">Runtime</dt>
-          <dd class="col-sm-8">{{ submission.runtime_ms ~ ' ms' if submission.runtime_ms is not none else '—' }}</dd>
+          <dd class="col-sm-8" id="runtime-cell">{{ submission.runtime_ms ~ ' ms' if submission.runtime_ms is not none else '—' }}</dd>
 
           <dt class="col-sm-4">Submitted</dt>
           <dd class="col-sm-8">{{ submission.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
@@ -53,4 +53,30 @@
 
 <h6>Source Code</h6>
 <pre class="code-view">{{ submission.code }}</pre>
+
+{% if submission.verdict == "pending" %}
+<script>
+(function () {
+  const submissionId = {{ submission.id }};
+  const verdictEl = document.getElementById("verdict-text");
+  const spinnerEl = document.getElementById("verdict-spinner");
+  const runtimeEl = document.getElementById("runtime-cell");
+
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`/submissions/${submissionId}/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.verdict !== "pending") {
+        verdictEl.className = `verdict-${data.verdict} fs-5`;
+        verdictEl.textContent = data.verdict_display;
+        if (spinnerEl) spinnerEl.remove();
+        runtimeEl.textContent = data.runtime_ms != null ? data.runtime_ms + " ms" : "—";
+        clearInterval(interval);
+      }
+    } catch (_) {}
+  }, 2000);
+})();
+</script>
+{% endif %}
 {% endblock %}

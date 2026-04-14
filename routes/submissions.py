@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -80,4 +80,25 @@ def submission_detail(submission_id: int, request: Request, db: Session = Depend
         "submission": submission,
         "verdict_display": VERDICT_DISPLAY,
         "verdict_color": VERDICT_COLOR,
+    })
+
+
+@router.get("/submissions/{submission_id}/status")
+def submission_status(submission_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    submission = db.query(Submission).filter(Submission.id == submission_id).first()
+    if not submission:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if submission.user_id != user.id and user.role.value != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    return JSONResponse({
+        "verdict": submission.verdict,
+        "verdict_display": VERDICT_DISPLAY.get(submission.verdict, submission.verdict),
+        "verdict_color": VERDICT_COLOR.get(submission.verdict, "secondary"),
+        "runtime_ms": submission.runtime_ms,
     })
