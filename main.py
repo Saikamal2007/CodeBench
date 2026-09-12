@@ -44,7 +44,7 @@ def _seed_admin():
             )
             db.add(admin)
             db.commit()
-            print(f"[CodeBench] Admin created — username: {admin_username}, password: {admin_password}")
+            print(f"[CodeBench] Admin created — username: {admin_username}, password: lol xd")
     finally:
         db.close()
 

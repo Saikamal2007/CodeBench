@@ -2,6 +2,7 @@ fastapi==0.115.12
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.40
 pymysql==1.1.1
+psycopg2-binary==2.9.10
 python-jose[cryptography]==3.3.0
 bcrypt==4.3.0
 python-multipart==0.0.20
