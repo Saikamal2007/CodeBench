@@ -106,7 +106,7 @@ def _judge_with_subprocess(config, code, test_cases, time_limit_ms, memory_limit
             compile_cmd = compile_fn(tmpdir)
             exit_code, stdout, stderr, _ = _run_subprocess(compile_cmd, "", 30)
             if exit_code != 0:
-                return "compilation_error", 0
+                return "compilation_error", 0,stderr
 
         max_runtime_ms = 0
         run_fn = config["run_local"]
@@ -165,7 +165,7 @@ def _judge_with_docker(
                 except concurrent.futures.TimeoutError:
                     return "compilation_error", 0
             if exit_code != 0:
-                return "compilation_error", 0
+                return "compilation_error", 0,stderr
 
         max_runtime_ms = 0
 
