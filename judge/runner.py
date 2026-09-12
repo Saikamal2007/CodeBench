@@ -29,7 +29,7 @@ LANGUAGE_CONFIG = {
         ],
     },
     "java": {
-        "image": "openjdk:17-slim",
+        "image": "eclipse-temurin:17-jdk", 
         "filename": "Solution.java",
         "compile_cmd": "javac /code/Solution.java",
         "run_cmd_docker": "java -cp /code Solution < /code/input.txt",
